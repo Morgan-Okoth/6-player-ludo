@@ -5,6 +5,8 @@ class LudoGame {
     this.diceValue = 0;
     this.gameState = 'lobby';
     this.boardType = 'classic';
+    this.lastRoll = 0;
+    this.achievements = JSON.parse(localStorage.getItem('ludoAchievements') || '[]');
     
     this.playerColors = ['#ff4444', '#44ff44', '#ffff44', '#4444ff', '#ff8800', '#8844ff'];
     this.playerNames = ['Red', 'Green', 'Yellow', 'Blue', 'Orange', 'Purple'];
@@ -14,13 +16,42 @@ class LudoGame {
   
   init() {
     this.setupEventListeners();
+    this.createParticles();
     this.showLobby();
   }
   
   setupEventListeners() {
     document.getElementById('start-game').addEventListener('click', () => this.startGame());
-    document.getElementById('roll-btn').addEventListener('click', () => this.rollDice());
+    document.getElementById('roll-btn').addEventListener('click', (e) => this.rollDice(e));
     document.getElementById('lobby-btn').addEventListener('click', () => this.showLobby());
+    this.setupParallax();
+  }
+  
+  createParticles() {
+    const particlesContainer = document.createElement('div');
+    particlesContainer.className = 'particles';
+    document.body.appendChild(particlesContainer);
+    
+    for (let i = 0; i < 50; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + 'vw';
+      particle.style.top = Math.random() * 100 + 'vh';
+      particle.style.width = (Math.random() * 4 + 2) + 'px';
+      particle.style.height = particle.style.width;
+      particle.style.animationDelay = Math.random() * 15 + 's';
+      particlesContainer.appendChild(particle);
+    }
+  }
+  
+  setupParallax() {
+    document.addEventListener('mousemove', (e) => {
+      const { clientX, clientY } = e;
+      const x = (clientX / window.innerWidth - 0.5) * 10;
+      const y = (clientY / window.innerHeight - 0.5) * 10;
+      document.querySelector('.board-wrapper')?.style.setProperty('--parallax-x', x + 'px');
+      document.querySelector('.board-wrapper')?.style.setProperty('--parallax-y', y + 'px');
+    });
   }
   
   showLobby() {
@@ -33,33 +64,88 @@ class LudoGame {
     this.setupPlayers(humanCount);
     this.gameState = 'playing';
     document.getElementById('lobby-modal').classList.add('hidden');
+    document.body.classList.remove('screen-shake', 'slow-motion');
     this.switchBoard(humanCount);
   }
   
   setupPlayers(humanCount) {
     this.players = [];
-    for (let i = 0; i < 6; i++) {
+    const totalPlayers = humanCount <= 4 ? humanCount : 6;
+    for (let i = 0; i < totalPlayers; i++) {
       this.players.push({
         id: i,
         name: this.playerNames[i],
         color: this.playerColors[i],
-        isHuman: i < humanCount,
+        isHuman: true,
         tokens: Array(4).fill(0).map((_, idx) => ({ id: idx, position: -1, home: true })),
         ready: true
       });
     }
+    if (humanCount < 6 && totalPlayers === 6) {
+      for (let i = humanCount; i < 6; i++) {
+        this.players.push({
+          id: i,
+          name: this.playerNames[i],
+          color: this.playerColors[i],
+          isHuman: false,
+          tokens: Array(4).fill(0).map((_, idx) => ({ id: idx, position: -1, home: true })),
+          ready: true
+        });
+      }
+    }
+    this.currentPlayerIndex = 0;
     this.renderPlayerList();
+    this.resizeBoard();
   }
   
   switchBoard(playerCount) {
     const container = document.getElementById('board-container');
+    const wrapper = container.parentElement;
+    
     container.classList.add('board-transition');
+    document.body.classList.add('screen-shake');
     
     setTimeout(() => {
       this.boardType = playerCount <= 4 ? 'classic' : 'hexagon';
       this.renderBoard();
+      this.addBranding();
+      this.addOrbital();
       container.classList.remove('board-transition');
+      setTimeout(() => document.body.classList.remove('screen-shake'), 500);
     }, 300);
+  }
+  
+  addBranding() {
+    const container = document.getElementById('board-container');
+    
+    const sides = ['top', 'bottom', 'left', 'right'];
+    sides.forEach(side => {
+      const el = document.createElement('div');
+      el.className = `branding-side side-${side}`;
+      el.textContent = '✦ MORGAN OKOTH ✦';
+      container.appendChild(el);
+    });
+  }
+  
+  addOrbital() {
+    const container = document.getElementById('board-container');
+    if (document.querySelector('.orbital-branding')) {
+      document.querySelector('.orbital-branding').remove();
+    }
+    
+    const orbital = document.createElement('div');
+    orbital.className = 'orbital-branding';
+    
+    const text = 'MORGANENTP';
+    for (let i = 0; i < text.length; i++) {
+      const el = document.createElement('div');
+      el.className = 'orbital-text';
+      el.textContent = text[i];
+      el.style.transform = `rotate(${(i * 360 / text.length)}deg) translateX(calc(var(--board-radius, 250px) * 0.95)) rotate(${(i * 360 / text.length)}deg)`;
+      orbital.appendChild(el);
+    }
+    
+    container.appendChild(orbital);
   }
   
   renderPlayerList() {
@@ -68,6 +154,7 @@ class LudoGame {
     this.players.forEach((player, index) => {
       const card = document.createElement('div');
       card.className = `player-card ${index === this.currentPlayerIndex ? 'active' : ''}`;
+      card.style.setProperty('--player-color', player.color);
       card.innerHTML = `
         <div class="player-avatar" style="background:${player.color}">${player.name[0]}</div>
         <div>
@@ -94,31 +181,33 @@ class LudoGame {
     const { width, height } = canvas;
     const cellSize = Math.min(width, height) / 15;
     
-    ctx.fillStyle = '#0a0a0a';
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, width, height);
+    
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, '#0a0a1a');
+    gradient.addColorStop(1, '#050505');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
     
     ctx.strokeStyle = '#d4af37';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     
-    // Draw home zones
-    const homes = [
-      { x: 0, y: 0, color: this.playerColors[0] },
-      { x: 11 * cellSize, y: 0, color: this.playerColors[1] },
-      { x: 0, y: 11 * cellSize, color: this.playerColors[2] },
-      { x: 11 * cellSize, y: 11 * cellSize, color: this.playerColors[3] }
-    ];
-    
-    homes.forEach(home => {
-      ctx.fillStyle = home.color;
-      ctx.globalAlpha = 0.3;
-      ctx.fillRect(home.x, home.y, 6 * cellSize, 6 * cellSize);
-      ctx.globalAlpha = 1;
-      ctx.strokeRect(home.x, home.y, 6 * cellSize, 6 * cellSize);
+    const homePositions = [{ x: 0, y: 0 }, { x: 11 * cellSize, y: 0 }, { x: 0, y: 11 * cellSize }, { x: 11 * cellSize, y: 11 * cellSize }];
+    this.players.forEach((player, idx) => {
+      if (idx < 4) {
+        const pos = homePositions[idx];
+        ctx.fillStyle = player.color;
+        ctx.globalAlpha = 0.4;
+        ctx.fillRect(pos.x + 2, pos.y + 2, 5 * cellSize - 4, 5 * cellSize - 4);
+        ctx.globalAlpha = 1;
+        ctx.strokeRect(pos.x + 2, pos.y + 2, 5 * cellSize - 4, 5 * cellSize - 4);
+      }
     });
     
-    // Draw grid
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 3]);
     for (let i = 0; i <= 14; i++) {
       ctx.beginPath();
       ctx.moveTo(i * cellSize + cellSize/2, cellSize/2);
@@ -130,17 +219,22 @@ class LudoGame {
       ctx.lineTo(width - cellSize/2, i * cellSize + cellSize/2);
       ctx.stroke();
     }
+    ctx.setLineDash([]);
     
-    // Draw center finish triangle
-    ctx.fillStyle = '#d4af37';
-    ctx.beginPath();
-    ctx.moveTo(7 * cellSize + cellSize/2, 7 * cellSize + cellSize/2);
-    ctx.lineTo(8 * cellSize + cellSize/2, 7 * cellSize + cellSize/2);
-    ctx.lineTo(7.5 * cellSize + cellSize/2, 8 * cellSize + cellSize/2);
-    ctx.closePath();
-    ctx.fill();
-    
+    this.drawSafeZones(ctx, cellSize);
     this.drawTokens(ctx, cellSize);
+  }
+  
+  drawSafeZones(ctx, cellSize) {
+    const safePositions = [1, 9, 14, 22, 27, 35, 40, 48];
+    ctx.fillStyle = '#d4af37';
+    safePositions.forEach(pos => {
+      const row = Math.floor(pos / 15);
+      const col = pos % 15;
+      const x = col * cellSize + cellSize / 2;
+      const y = row * cellSize + cellSize / 2;
+      this.drawStar(ctx, x, y, 6, 3);
+    });
   }
   
   renderHexagonBoard(ctx, canvas) {
@@ -149,15 +243,23 @@ class LudoGame {
     const centerY = height / 2;
     const radius = Math.min(width, height) / 2.5;
     
-    ctx.fillStyle = '#0a0a0a';
+    document.documentElement.style.setProperty('--board-radius', radius + 'px');
+    
+    ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, width, height);
     
-    // Draw hexagon
+    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+    gradient.addColorStop(0, '#151525');
+    gradient.addColorStop(0.7, '#0a0a1a');
+    gradient.addColorStop(1, '#050505');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+    
     ctx.strokeStyle = '#d4af37';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI) / 3 - Math.PI / 6;
+      const angle = (i * Math.PI) / 3;
       const x = centerX + radius * Math.cos(angle);
       const y = centerY + radius * Math.sin(angle);
       if (i === 0) ctx.moveTo(x, y);
@@ -166,81 +268,141 @@ class LudoGame {
     ctx.closePath();
     ctx.stroke();
     
-    // Draw six home zones
-    for (let i = 0; i < 6; i++) {
+    this.players.forEach((player, i) => {
       const angle = (i * Math.PI) / 3;
-      const x = centerX + (radius / 2) * Math.cos(angle);
-      const y = centerY + (radius / 2) * Math.sin(angle);
-      this.drawHomeZone(ctx, x, y, angle, this.playerColors[i], radius / 4);
-    }
+      this.drawHexHomeZone(ctx, centerX, centerY, angle, player.color, radius / 3);
+    });
     
-    // Draw center dice emblem
-    ctx.fillStyle = '#d4af37';
+    this.drawCenterEmblem(ctx, centerX, centerY, radius);
+    this.drawOuterRingPath(ctx, centerX, centerY, radius);
+    this.drawTokens(ctx, null);
+  }
+  
+  drawCenterEmblem(ctx, centerX, centerY, radius) {
+    const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius / 6);
+    grad.addColorStop(0, '#fff');
+    grad.addColorStop(0.5, '#d4af37');
+    grad.addColorStop(1, '#b8860b');
+    
+    ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius / 6, 0, Math.PI * 2);
     ctx.fill();
     
-    // Draw outer ring path
-    ctx.strokeStyle = '#555';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI) / 3;
-      const x1 = centerX + (radius * 0.8) * Math.cos(angle);
-      const y1 = centerY + (radius * 0.8) * Math.sin(angle);
-      const x2 = centerX + (radius * 0.95) * Math.cos(angle + Math.PI/3);
-      const y2 = centerY + (radius * 0.95) * Math.sin(angle + Math.PI/3);
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-    }
+    ctx.arc(centerX, centerY, radius / 8, 0, Math.PI * 2);
     ctx.stroke();
     
-    this.drawTokens(ctx, null);
+    ctx.fillStyle = '#0a0a0a';
+    this.drawStar(ctx, centerX, centerY, 6, 3);
   }
   
-  drawHomeZone(ctx, x, y, angle, color, size) {
+  drawOuterRingPath(ctx, centerX, centerY, radius) {
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 2;
+    for (let seg = 0; seg < 24; seg++) {
+      const a1 = (seg * Math.PI) / 12;
+      const a2 = ((seg + 1) * Math.PI) / 12;
+      const x1 = centerX + (radius * 0.88) * Math.cos(a1);
+      const y1 = centerY + (radius * 0.88) * Math.sin(a1);
+      const x2 = centerX + (radius * 0.88) * Math.cos(a2);
+      const y2 = centerY + (radius * 0.88) * Math.sin(a2);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+    
+    this.players.forEach((player, i) => {
+      const angle = (i * Math.PI) / 3;
+      const x = centerX + (radius * 0.85) * Math.cos(angle);
+      const y = centerY + (radius * 0.85) * Math.sin(angle);
+      this.drawStar(ctx, x, y, 6, 3);
+    });
+  }
+  
+  drawStar(ctx, x, y, outerRadius, innerRadius) {
     ctx.save();
     ctx.translate(x, y);
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+      ctx.lineTo(Math.cos(angle) * outerRadius, Math.sin(angle) * outerRadius);
+      const angle2 = ((i + 0.5) * 2 * Math.PI) / 5 - Math.PI / 2;
+      ctx.lineTo(Math.cos(angle2) * innerRadius, Math.sin(angle2) * innerRadius);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+  
+  drawHexHomeZone(ctx, centerX, centerY, angle, color, size) {
+    ctx.save();
+    ctx.translate(centerX, centerY);
     ctx.rotate(angle);
     
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.3;
-    ctx.fillRect(-size/2, -size/2, size, size);
+    const grad = ctx.createLinearGradient(0, -size, 0, size);
+    grad.addColorStop(0, color + '80');
+    grad.addColorStop(0.5, color + '40');
+    grad.addColorStop(1, color + '80');
+    
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(0, -size);
+    ctx.lineTo(size * 0.7, -size * 0.3);
+    ctx.lineTo(size, -size * 0.3);
+    ctx.lineTo(size * 0.85, 0);
+    ctx.lineTo(size, size * 0.3);
+    ctx.lineTo(size * 0.7, size * 0.3);
+    ctx.lineTo(0, size);
+    ctx.lineTo(-size * 0.7, size * 0.3);
+    ctx.lineTo(-size, size * 0.3);
+    ctx.lineTo(-size * 0.85, 0);
+    ctx.lineTo(-size, -size * 0.3);
+    ctx.lineTo(-size * 0.7, -size * 0.3);
+    ctx.closePath();
+    ctx.fill();
     ctx.globalAlpha = 1;
     
     ctx.strokeStyle = '#fff';
-    ctx.strokeRect(-size/2, -size/2, size, size);
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.restore();
   }
   
   drawTokens(ctx, cellSize) {
     this.players.forEach(player => {
       player.tokens.forEach((token, idx) => {
-        if (token.position >= 0) {
-          const pos = this.getTokenScreenPosition(token.position, player.id);
+        if (token.position >= 0 || player.tokens.some(t => !t.home)) {
+          ctx.shadowColor = player.color;
+          ctx.shadowBlur = 10;
           ctx.fillStyle = player.color;
           ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 3;
+          const pos = this.getTokenScreenPosition(token.position, player.id, cellSize);
           ctx.beginPath();
-          ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2);
+          ctx.arc(pos.x, pos.y, 14, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
+          ctx.shadowBlur = 0;
         }
       });
     });
   }
   
-  getTokenScreenPosition(position, playerId) {
+  getTokenScreenPosition(position, playerId, cellSize = null) {
     const canvas = document.getElementById('game-board');
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
     if (this.boardType === 'classic') {
-      const cellSize = Math.min(canvas.width, canvas.height) / 15;
-      const row = Math.floor(position / 15);
-      const col = position % 15;
+      const cs = cellSize || Math.min(canvas.width, canvas.height) / 15;
       return {
-        x: col * cellSize + cellSize / 2,
-        y: row * cellSize + cellSize / 2
+        x: cs * 7 + cs / 2,
+        y: cs * 7 + cs / 2
       };
     } else {
       const radius = Math.min(canvas.width, canvas.height) / 2.5;
@@ -253,12 +415,106 @@ class LudoGame {
     }
   }
   
-  rollDice() {
-    this.diceValue = Math.floor(Math.random() * 6) + 1;
+  rollDice(e) {
+    if (e) {
+      const btn = e.target;
+      btn.style.transform = 'scale(0.95)';
+      setTimeout(() => btn.style.transform = '', 150);
+    }
+    
     const dice = document.getElementById('dice');
-    dice.textContent = ['⚀', '⚀', '⚂', '⚃', '⚄', '⚅'][this.diceValue];
-    dice.style.animation = 'none';
-    setTimeout(() => dice.style.animation = 'diceRoll 0.5s ease', 10);
+    dice.classList.add('flying');
+    
+    const rollSequence = [1, 4, 2, 5, 3, 6, 6];
+    let step = 0;
+    
+    const rollingInterval = setInterval(() => {
+      const val = rollSequence[Math.min(step, rollSequence.length - 1)];
+      dice.textContent = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][val - 1];
+      step++;
+      if (step > rollSequence.length + 5) {
+        clearInterval(rollingInterval);
+        this.diceValue = Math.floor(Math.random() * 6) + 1;
+        dice.textContent = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][this.diceValue - 1];
+        dice.classList.remove('flying');
+        dice.classList.add('bounce');
+        
+        if (this.diceValue === 6) {
+          this.triggerSixEffect();
+        }
+        
+        setTimeout(() => dice.classList.remove('bounce'), 600);
+        this.showBanner(this.diceValue === 6 ? 'DOUBLE SIX!' : null);
+        this.updateTokenIndicators();
+        this.nextTurn();
+      }
+    }, 150);
+  }
+  
+  triggerSixEffect() {
+    document.body.classList.add('slow-motion');
+    setTimeout(() => document.body.classList.remove('slow-motion'), 3000);
+    
+    const effect = document.createElement('div');
+    effect.style.cssText = `
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(212,175,55,0.8), transparent);
+      animation: expand 1.5s ease-out;
+      pointer-events: none; z-index: 100;
+    `;
+    document.getElementById('board-container').appendChild(effect);
+    setTimeout(() => effect.remove(), 1500);
+  }
+  
+  showBanner(text) {
+    if (!text) return;
+    
+    const banner = document.createElement('div');
+    banner.className = 'banner';
+    banner.textContent = text;
+    
+    document.getElementById('board-container').appendChild(banner);
+    setTimeout(() => banner.remove(), 3000);
+  }
+  
+  updateTokenIndicators() {
+    const container = document.getElementById('token-indicators');
+    container.innerHTML = '';
+    const currentPlayer = this.players[this.currentPlayerIndex];
+    currentPlayer.tokens.forEach((token, idx) => {
+      const indicator = document.createElement('div');
+      indicator.className = `token-indicator ${token.home ? 'home' : ''}`;
+      indicator.style.background = currentPlayer.color;
+      indicator.title = `Token ${idx + 1} ${token.home ? '(Home)' : '(Active)'}`;
+      container.appendChild(indicator);
+    });
+  }
+  
+  nextTurn() {
+    this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+    this.renderPlayerList();
+  }
+  
+  resizeBoard() {
+    const canvas = document.getElementById('game-board');
+    const container = canvas.parentElement;
+    const size = Math.min(container.clientWidth || 600, container.clientHeight || 600);
+    canvas.width = size;
+    canvas.height = size;
+    
+    if (!document.querySelector('.board-wrapper')) {
+      container.classList.add('board-wrapper');
+      const boardContainer = document.getElementById('board-container');
+      boardContainer.style.cssText = `
+        width: ${size}px; height: ${size}px;
+        transition: transform 0.3s ease;
+        transform: translate(var(--parallax-x, 0), var(--parallax-y, 0));
+      `;
+    }
+    
+    this.renderBoard();
+    this.addOrbital();
   }
 }
 
