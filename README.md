@@ -1,41 +1,55 @@
 # Premium Adaptive Ludo Game
 
-A premium Ludo game with automatic board switching based on player count.
+A luxury digital Ludo board game with automatic board switching and cinematic premium visual effects.
 
 ## Features
 
 ### Board Switching Logic
-- **1-4 Players**: Classic 15x15 Ludo board with 4 home zones (Red, Green, Yellow, Blue)
-- **5-6 Players**: Hexagonal/star-shaped board with 6 home zones (Red, Orange, Yellow, Green, Blue, Purple)
+- **1-4 Players**: Classic 15x15 square Ludo board
+- **5-6 Players**: Hexagonal/star-shaped six-player board
 
-### Six Player Board Design
-- Perfect hexagonal shape
-- Each color occupies one side of the hexagon
-- 4 tokens per home zone
-- Colored entry lanes for each player
-- Circular outer ring movement path
-- Central victory area with decorative dice emblem
-- Safe zones marked with stars
-
-### UI Layout
-- **Left Sidebar**: Player list with avatar, name, human/AI indicator, turn highlight, ready status
-- **Center**: Adaptive board container with smooth transition animations
-- **Right Sidebar**: Dice panel, roll button, token indicators, undo, and settings buttons
-
-### Visual Style
-- Premium Strategy Game theme
+### Visual Design - Black & Gold Premium Theme
 - Black background with gold decorative borders
-- Soft ambient lighting and glossy board finish
-- Dice rolling, token movement, and board transition animations
+- Glassmorphism panels with soft shadows
+- Neon gold highlights and reflections
+- Glowing board edges
+- Premium casino-quality appearance
+
+### Branding
+- Rotating circular "MORGANENTP" orbital text around the board
+- "✦ MORGAN OKOTH ✦" illuminated text on all four sides
+- Dynamic glow reactions during special events
+- Futuristic gaming console dashboard styling
+
+### Dice System
+- Cinematic flying animation with physics
+- Spin, tumble, bounce, and glow effects
+- Special slow-motion for rolling 6
+- Golden energy burst effects
+
+### Token System
+- Smooth curved movement animations
+- Glowing trails when moving
+- Pulse effects when selected
+- Landing ripple effects
+- Special animations for captures and home runs
+
+### Special Effects
+- Animated banners: DOUBLE SIX, CAPTURE, HOME RUN, VICTORY
+- Particle explosions and energy bursts
+- Screen shake for major events
+- Cinematic slow motion during exciting moments
+
+### Animations
+- Dice rolling with flying animation
+- Token movement with trails
+- Board transition animation
+- Turn highlight glow
 - Victory celebration effects
 
-## Technical Implementation
-- Dynamic player array (supports 1-6 players, extensible to 8)
-- Dynamic color assignment
-- Dynamic board renderer
-- Dynamic path generator
-- Dynamic AI slot filling
-- Dynamic turn manager
+## Responsive
+- Desktop and mobile optimized
+- Smooth parallax mouse effects
 
 ## Running the Game
 Open `index.html` in a browser to play.

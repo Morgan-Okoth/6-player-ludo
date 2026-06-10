@@ -118,6 +118,8 @@ class LudoGame {
   addBranding() {
     const container = document.getElementById('board-container');
     
+    document.querySelectorAll('.branding-side').forEach(el => el.remove());
+    
     const sides = ['top', 'bottom', 'left', 'right'];
     sides.forEach(side => {
       const el = document.createElement('div');

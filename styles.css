@@ -428,3 +428,8 @@ select:focus {
 .slow-motion {
   animation-duration: 2s !important;
 }
+
+@keyframes expand {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
