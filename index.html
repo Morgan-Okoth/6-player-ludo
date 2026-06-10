@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium Adaptive Ludo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <div class="sidebar left-sidebar">
+      <div id="player-list"></div>
+    </div>
+    <div class="main-content">
+      <div class="board-container" id="board-container">
+        <canvas id="game-board" width="600" height="600"></canvas>
+      </div>
+    </div>
+    <div class="sidebar right-sidebar">
+      <div class="dice-panel" id="dice-panel">
+        <div class="dice" id="dice">⚄</div>
+        <button id="roll-btn" class="premium-btn">Roll Dice</button>
+      </div>
+      <div class="controls">
+        <div id="token-indicators"></div>
+        <button id="undo-btn" class="premium-btn">Undo</button>
+        <button id="settings-btn" class="premium-btn">Settings</button>
+        <button id="lobby-btn" class="premium-btn">Lobby</button>
+      </div>
+    </div>
+    <div id="lobby-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2>Select Players</h2>
+        <div class="player-selector">
+          <label>Human Players: <select id="human-count"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+          <button id="start-game" class="premium-btn">Start Game</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
